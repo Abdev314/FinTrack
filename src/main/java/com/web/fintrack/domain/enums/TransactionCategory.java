@@ -1,4 +1,4 @@
-package com.cms.web.fintrack.domain.enums;
+package com.web.fintrack.domain.enums;
 
 public enum TransactionCategory {
 

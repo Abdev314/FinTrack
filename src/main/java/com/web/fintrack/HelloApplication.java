@@ -1,4 +1,4 @@
-package com.cms.web.fintrack;
+package com.web.fintrack;
 
 import jakarta.ws.rs.ApplicationPath;
 import jakarta.ws.rs.core.Application;
