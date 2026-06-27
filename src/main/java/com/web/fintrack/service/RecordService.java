@@ -1,20 +1,21 @@
 package com.web.fintrack.service;
 
+import com.web.fintrack.dao.RecordRepositoryImpl;
 import com.web.fintrack.domain.model.Record;
 import com.web.fintrack.repository.RecordRepository;
-import jakarta.enterprise.context.RequestScoped;
-import jakarta.inject.Inject;
 
 import java.util.List;
 import java.util.Optional;
 
 
-@RequestScoped
 public class RecordService {
 
     private final RecordRepository<Record, String> recordRepository;
 
-    @Inject
+    public RecordService() {
+        this.recordRepository = new RecordRepositoryImpl();
+    }
+
     public RecordService(RecordRepository<Record, String> recordRepository) {
         this.recordRepository = recordRepository;
     }

@@ -4,35 +4,23 @@ import com.web.fintrack.domain.enums.TransactionCategory;
 import com.web.fintrack.domain.enums.TransactionType;
 import com.web.fintrack.domain.model.Record;
 import com.web.fintrack.repository.RecordRepository;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.EntityTransaction;
-import jakarta.persistence.Persistence;
-import jakarta.persistence.TypedQuery;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
+import javax.persistence.Persistence;
+import javax.persistence.TypedQuery;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-@ApplicationScoped
 public class RecordRepositoryImpl implements RecordRepository<Record, String> {
 
-    private EntityManagerFactory emf;
+    private static final EntityManagerFactory emf =
+            Persistence.createEntityManagerFactory("fintrack-pu");
 
-    @PostConstruct
-    public void init() {
-        emf = Persistence.createEntityManagerFactory("fintrack-pu");
-    }
-
-    @PreDestroy
-    public void cleanup() {
-        if (emf != null && emf.isOpen()) {
-            emf.close();
-        }
+    public RecordRepositoryImpl() {
     }
 
     @Override

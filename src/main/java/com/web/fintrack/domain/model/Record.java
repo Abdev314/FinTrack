@@ -2,12 +2,12 @@ package com.web.fintrack.domain.model;
 
 import com.web.fintrack.domain.enums.TransactionType;
 import com.web.fintrack.domain.enums.TransactionCategory;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.Id;
+import javax.persistence.Table;
 
 @Entity
 @Table(name = "records")
