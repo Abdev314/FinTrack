@@ -22,10 +22,6 @@ public class RecordResource {
         this.recordService = new RecordService();
     }
 
-    public RecordResource(RecordService recordService){
-        this.recordService = recordService;
-    }
-
     @POST
     @Consumes("application/json")
     @Produces("application/json")
@@ -78,13 +74,5 @@ public class RecordResource {
         recordService.deleteRecord(new Record(null, 0, null, null, null, null, id));
         return Response.noContent().build();
     }
-
-
-
-
-
-
-
-
 
 }

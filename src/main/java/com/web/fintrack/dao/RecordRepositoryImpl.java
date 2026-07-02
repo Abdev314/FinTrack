@@ -20,9 +20,6 @@ public class RecordRepositoryImpl implements RecordRepository<Record, String> {
     private static final EntityManagerFactory emf =
             Persistence.createEntityManagerFactory("fintrack-pu");
 
-    public RecordRepositoryImpl() {
-    }
-
     @Override
     public Record save(Record record) {
         return executeInTransaction(em -> em.merge(record));
