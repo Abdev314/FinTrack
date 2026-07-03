@@ -9,8 +9,11 @@ export const recordApi = {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify(record),
-        }).then((res) => {
-            if(!res.ok) throw new Error('Failed to create a record')
+        }).then(async (res) => {
+            if(!res.ok) {
+                const message = await res.text();
+                throw new Error(message || 'Failed to create a record');
+            }
             return res.json();
         }),
 
