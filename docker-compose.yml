@@ -1,6 +1,5 @@
-version: '3.8'
-
 services:
+
   postgres:
     image: postgres:15
     container_name: docker-postgresql
@@ -9,10 +8,38 @@ services:
       POSTGRES_USER: postgresql_db
       POSTGRES_PASSWORD: fintrack1234
       POSTGRES_DB: fintrackdb
-    ports:
-      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - fintrack-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fintrack-backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    networks:
+      - fintrack-network
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: fintrack-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx/nginx.config:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - fintrack-network
 
 volumes:
   pgdata:
+
+networks:
+  fintrack-network:
