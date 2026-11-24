@@ -6,6 +6,7 @@ import com.web.fintrack.api.RecordResource;
 import javax.ws.rs.core.Application;
 import java.util.HashSet;
 import java.util.Set;
+import com.web.fintrack.config.CorsFilter;
 
 public class FinTrackApplication extends Application {
 
@@ -14,6 +15,7 @@ public class FinTrackApplication extends Application {
         Set<Class<?>> classes = new HashSet<>();
         classes.add(RecordResource.class);
         classes.add(IllegalArgumentExceptionMapper.class);
+        classes.add(CorsFilter.class);
         return classes;
     }
 }
