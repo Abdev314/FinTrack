@@ -10,15 +10,33 @@ import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
 import javax.persistence.TypedQuery;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class RecordRepositoryImpl implements RecordRepository<Record, String> {
 
-    private static final EntityManagerFactory emf =
-            Persistence.createEntityManagerFactory("fintrack-pu");
+    private static final EntityManagerFactory emf = createEntityManagerFactory();
+
+    private static EntityManagerFactory createEntityManagerFactory() {
+        Map<String, Object> properties = new HashMap<>();
+
+        properties.put(
+                "javax.persistence.jdbc.url",
+                "jdbc:postgresql://" +
+                        System.getenv("DB_HOST") + ":" +
+                        System.getenv("DB_PORT") + "/" +
+                        System.getenv("DB_NAME")
+        );
+
+        properties.put("javax.persistence.jdbc.user", System.getenv("DB_USER"));
+        properties.put("javax.persistence.jdbc.password", System.getenv("DB_PASSWORD"));
+
+        return Persistence.createEntityManagerFactory("fintrack-pu", properties);
+    }
 
     @Override
     public Record save(Record record) {
