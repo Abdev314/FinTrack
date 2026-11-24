@@ -9,6 +9,7 @@ import {
   getTransactionCategoryLabel,
   type RecordItem,
 } from '../types/Records';
+
 import {
   Plus,
   X,
@@ -20,6 +21,7 @@ import {
   User,
   FileText,
   Check,
+  ChevronDown,
 } from '@lucide/vue';
 
 const emit = defineEmits<{
@@ -27,34 +29,40 @@ const emit = defineEmits<{
 }>();
 
 const isOpen = ref(false);
-const loading = ref(false);
+const saving = ref(false);
 const error = ref<string | null>(null);
 const success = ref(false);
 
 const typeMeta: Record<
   TransactionType,
-  { label: string; icon: typeof TrendingUp; color: string; activeRing: string; bg: string }
+  {
+    label: string;
+    icon: typeof TrendingUp;
+    color: string;
+    bg: string;
+    ring: string;
+  }
 > = {
   [TransactionType.INCOME]: {
     label: 'Income',
     icon: TrendingUp,
     color: 'text-emerald-600',
-    activeRing: 'ring-emerald-200',
     bg: 'bg-emerald-50',
+    ring: 'ring-emerald-200',
   },
   [TransactionType.EXPENSE]: {
     label: 'Expense',
     icon: TrendingDown,
     color: 'text-rose-600',
-    activeRing: 'ring-rose-200',
     bg: 'bg-rose-50',
+    ring: 'ring-rose-200',
   },
   [TransactionType.TRANSFER]: {
     label: 'Transfer',
     icon: ArrowLeftRight,
     color: 'text-indigo-600',
-    activeRing: 'ring-indigo-200',
     bg: 'bg-indigo-50',
+    ring: 'ring-indigo-200',
   },
 };
 
@@ -63,208 +71,297 @@ const form = reactive<RecordItem>({
   transactionType: TransactionType.INCOME,
   amount: 0,
   transactionCategory: TransactionCategory.SALARY,
-  date: '',
+  date: new Date().toISOString().split('T')[0],
   operator: '',
   notes: '',
 });
 
-function open() {
-  isOpen.value = true;
-  resetForm();
+function resetForm() {
+  Object.assign(form, {
+    recordId: '',
+    transactionType: TransactionType.INCOME,
+    amount: 0,
+    transactionCategory: TransactionCategory.SALARY,
+    date: new Date().toISOString().split('T')[0],
+    operator: '',
+    notes: '',
+  });
+
   error.value = null;
   success.value = false;
 }
 
+function open() {
+  resetForm();
+  isOpen.value = true;
+}
+
 function close() {
+  if (saving.value) return;
   isOpen.value = false;
 }
 
-function resetForm() {
-  form.recordId = '';
-  form.transactionType = TransactionType.INCOME;
-  form.amount = 0;
-  form.transactionCategory = TransactionCategory.SALARY;
-  form.date = '';
-  form.operator = '';
-  form.notes = '';
-}
-
 async function submit() {
-  if (!form.recordId.trim()) {
-    error.value = 'Please enter a record ID';
-    return;
-  }
-  if (form.amount <= 0) {
+  error.value = null;
+  success.value = false;
+
+  if (!form.amount || form.amount <= 0) {
     error.value = 'Amount must be greater than zero';
     return;
   }
 
-  loading.value = true;
-  error.value = null;
-  success.value = false;
+  if (!form.date) {
+    error.value = 'Please select a date';
+    return;
+  }
+
+  if (!form.operator.trim()) {
+    error.value = 'Please enter an operator';
+    return;
+  }
+
+  saving.value = true;
 
   try {
-    await recordApi.create({ ...form });
+    await recordApi.create({
+      ...form,
+      operator: form.operator.trim(),
+      notes: form.notes.trim(),
+    });
+
     success.value = true;
     emit('added');
+
     setTimeout(() => {
       close();
-    }, 800);
+    }, 700);
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to create record';
+    error.value =
+      err instanceof Error ? err.message : 'Failed to create record';
   } finally {
-    loading.value = false;
+    saving.value = false;
   }
 }
 </script>
 
 <template>
   <div>
+    <!-- Trigger -->
     <button
+      type="button"
       @click="open"
-      class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition-all hover:bg-indigo-700 hover:shadow-indigo-300 hover:-translate-y-0.5 active:translate-y-0"
+      class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
     >
-      <Plus class="h-5 w-5" />
+      <Plus class="h-4 w-4" />
       Add Record
     </button>
 
     <Teleport to="body">
       <Transition
-        enter-active-class="transition duration-200 ease-out"
+        enter-active-class="transition duration-150 ease-out"
         enter-from-class="opacity-0"
         enter-to-class="opacity-100"
-        leave-active-class="transition duration-150 ease-in"
+        leave-active-class="transition duration-100 ease-in"
         leave-from-class="opacity-100"
         leave-to-class="opacity-0"
       >
         <div
           v-if="isOpen"
-          class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 py-8 px-4"
+          class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/30 px-4 py-8"
           @click.self="close"
         >
           <Transition
+            appear
             enter-active-class="transition duration-200 ease-out"
-            enter-from-class="opacity-0 scale-95 translate-y-2"
-            enter-to-class="opacity-100 scale-100 translate-y-0"
+            enter-from-class="translate-y-2 scale-[0.98] opacity-0"
+            enter-to-class="translate-y-0 scale-100 opacity-100"
             leave-active-class="transition duration-150 ease-in"
-            leave-from-class="opacity-100 scale-100 translate-y-0"
-            leave-to-class="opacity-0 scale-95 translate-y-2"
+            leave-from-class="translate-y-0 scale-100 opacity-100"
+            leave-to-class="translate-y-2 scale-[0.98] opacity-0"
           >
             <div
               v-if="isOpen"
-              class="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/5"
+              class="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="add-record-title"
             >
-              <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <!-- Header -->
+              <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
                 <div>
-                  <h2 class="text-lg font-semibold text-slate-900">Add New Record</h2>
-                  <p class="text-sm text-slate-500">Enter the details of your transaction</p>
+                  <h2
+                    id="add-record-title"
+                    class="text-lg font-semibold text-slate-900"
+                  >
+                    Add Record
+                  </h2>
+                  <p class="mt-0.5 text-sm text-slate-500">
+                    Create a new financial transaction
+                  </p>
                 </div>
+
                 <button
+                  type="button"
                   @click="close"
-                  class="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                  :disabled="saving"
+                  class="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Close"
                 >
                   <X class="h-5 w-5" />
                 </button>
               </div>
 
-              <form @submit.prevent="submit" class="p-6">
-                <div v-if="success" class="mb-5 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-emerald-700">
-                  <Check class="h-5 w-5" />
-                  <span class="text-sm font-medium">Record created successfully</span>
-                </div>
-
-                <div v-if="error" class="mb-5 rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-                  {{ error }}
-                </div>
-
-                <div class="space-y-5">
-                  <div class="grid gap-5 sm:grid-cols-2">
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-medium text-slate-700">Record ID</label>
-                      <div class="relative">
-                        <FileText class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                        <input
-                          v-model="form.recordId"
-                          type="text"
-                          placeholder="e.g. rec-001"
-                          class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-                        />
-                      </div>
-                    </div>
-
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-medium text-slate-700">Amount</label>
-                      <div class="relative">
-                        <DollarSign class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                        <input
-                          v-model.number="form.amount"
-                          type="number"
-                          min="1"
-                          placeholder="0.00"
-                          class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-                        />
-                      </div>
-                    </div>
-
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-medium text-slate-700">Date</label>
-                      <div class="relative">
-                        <CalendarDays class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                        <input
-                          v-model="form.date"
-                          type="date"
-                          class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition-all focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-                        />
-                      </div>
-                    </div>
-
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-medium text-slate-700">Operator</label>
-                      <div class="relative">
-                        <User class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                        <input
-                          v-model="form.operator"
-                          type="text"
-                          placeholder="e.g. admin"
-                          class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-                        />
-                      </div>
-                    </div>
+              <form
+                @submit.prevent="submit"
+                class="max-h-[calc(100vh-8rem)] overflow-y-auto"
+              >
+                <div class="space-y-5 p-5 sm:p-6">
+                  <!-- Messages -->
+                  <div
+                    v-if="success"
+                    class="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"
+                  >
+                    <Check class="h-4 w-4 shrink-0" />
+                    Record added successfully.
                   </div>
 
-                  <div class="space-y-1.5">
-                    <label class="text-sm font-medium text-slate-700">Transaction Type</label>
-                    <div class="grid grid-cols-3 gap-2 rounded-xl bg-slate-100 p-1.5">
+                  <div
+                    v-if="error"
+                    class="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700"
+                    role="alert"
+                  >
+                    {{ error }}
+                  </div>
+
+                  <!-- Transaction type -->
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-slate-700">
+                      Transaction Type
+                    </label>
+
+                    <div class="grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-1.5">
                       <button
                         v-for="type in TRANSACTION_TYPES"
                         :key="type"
                         type="button"
                         @click="form.transactionType = type"
                         :class="[
-                          'flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+                          'flex items-center justify-center gap-2 rounded-lg px-2 py-2.5 text-sm font-medium transition-colors',
                           form.transactionType === type
-                            ? `bg-white shadow-sm ring-1 ${typeMeta[type].activeRing} ${typeMeta[type].color}`
-                            : 'text-slate-500 hover:bg-white/60 hover:text-slate-700',
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-500 hover:bg-white/70 hover:text-slate-700',
                         ]"
                       >
                         <component
                           :is="typeMeta[type].icon"
                           class="h-4 w-4"
-                          :class="form.transactionType === type ? typeMeta[type].color : 'text-slate-400'"
+                          :class="
+                            form.transactionType === type
+                              ? typeMeta[type].color
+                              : 'text-slate-400'
+                          "
                         />
-                        {{ typeMeta[type].label }}
+
+                        <span class="hidden sm:inline">
+                          {{ typeMeta[type].label }}
+                        </span>
                       </button>
                     </div>
                   </div>
 
+                  <!-- Main fields -->
                   <div class="grid gap-5 sm:grid-cols-2">
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-medium text-slate-700">Category</label>
+                    <!-- Amount -->
+                    <div>
+                      <label
+                        for="record-amount"
+                        class="mb-1.5 block text-sm font-medium text-slate-700"
+                      >
+                        Amount
+                      </label>
+
+                      <div class="relative">
+                        <DollarSign
+                          class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                        />
+
+                        <input
+                          id="record-amount"
+                          v-model.number="form.amount"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          required
+                          class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-9 pr-4 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+                        />
+                      </div>
+                    </div>
+
+                    <!-- Date -->
+                    <div>
+                      <label
+                        for="record-date"
+                        class="mb-1.5 block text-sm font-medium text-slate-700"
+                      >
+                        Date
+                      </label>
+
+                      <div class="relative">
+                        <CalendarDays
+                          class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                        />
+
+                        <input
+                          id="record-date"
+                          v-model="form.date"
+                          type="date"
+                          required
+                          class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-9 pr-4 text-sm text-slate-900 outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+                        />
+                      </div>
+                    </div>
+
+                    <!-- Operator -->
+                    <div>
+                      <label
+                        for="record-operator"
+                        class="mb-1.5 block text-sm font-medium text-slate-700"
+                      >
+                        Operator
+                      </label>
+
+                      <div class="relative">
+                        <User
+                          class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                        />
+
+                        <input
+                          id="record-operator"
+                          v-model="form.operator"
+                          type="text"
+                          placeholder="e.g. admin"
+                          required
+                          class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-9 pr-4 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+                        />
+                      </div>
+                    </div>
+
+                    <!-- Category -->
+                    <div>
+                      <label
+                        for="record-category"
+                        class="mb-1.5 block text-sm font-medium text-slate-700"
+                      >
+                        Category
+                      </label>
+
                       <div class="relative">
                         <select
+                          id="record-category"
                           v-model="form.transactionCategory"
-                          class="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-10 text-sm text-slate-900 outline-none transition-all focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
+                          required
+                          class="w-full appearance-none rounded-xl border border-slate-200 bg-white py-3 pl-4 pr-10 text-sm text-slate-900 outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
                         >
                           <option
                             v-for="category in TRANSACTION_CATEGORIES"
@@ -274,42 +371,66 @@ async function submit() {
                             {{ getTransactionCategoryLabel(category) }}
                           </option>
                         </select>
-                        <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-                          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </div>
+
+                        <ChevronDown
+                          class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                        />
                       </div>
                     </div>
+                  </div>
 
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-medium text-slate-700">Notes</label>
+                  <!-- Notes -->
+                  <div>
+                    <label
+                      for="record-notes"
+                      class="mb-1.5 block text-sm font-medium text-slate-700"
+                    >
+                      Notes
+                      <span class="font-normal text-slate-400">(optional)</span>
+                    </label>
+
+                    <div class="relative">
+                      <FileText
+                        class="absolute left-3 top-3 h-4 w-4 text-slate-400"
+                      />
+
                       <input
+                        id="record-notes"
                         v-model="form.notes"
                         type="text"
-                        placeholder="Optional note"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
+                        placeholder="Add a note about this transaction"
+                        class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-9 pr-4 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div class="mt-7 flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
+                <!-- Footer -->
+                <div
+                  class="flex flex-col-reverse gap-2 border-t border-slate-100 px-5 py-4 sm:flex-row sm:justify-end sm:px-6"
+                >
                   <button
                     type="button"
                     @click="close"
-                    class="rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+                    :disabled="saving"
+                    class="rounded-xl px-5 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Cancel
                   </button>
+
                   <button
                     type="submit"
-                    :disabled="loading"
-                    class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-200 transition-all hover:bg-indigo-700 hover:shadow-lg active:translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                    :disabled="saving"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <Check v-if="!loading" class="h-4 w-4" />
-                    <span v-if="loading" class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
-                    {{ loading ? 'Saving...' : 'Save Record' }}
+                    <span
+                      v-if="saving"
+                      class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                    />
+
+                    <Check v-else class="h-4 w-4" />
+
+                    {{ saving ? 'Adding...' : 'Add Record' }}
                   </button>
                 </div>
               </form>
